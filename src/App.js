@@ -9,8 +9,13 @@ import Typography from "@mui/material/Typography";
 import CloudIcon from "@mui/icons-material/Cloud";
 import Button from "@mui/material/Button";
 
+import { useSelector, useDispatch } from "react-redux";
+import { changeResult } from "./weatherApiSlice";
+import { fetchWeatherApi } from "./weatherApiSlice";
+import CircularProgress from "@mui/material/CircularProgress";
+
 import { useEffect, useState } from "react";
-import axios from "axios";
+// import axios from "axios";
 import moment from "moment";
 import "moment/min/locales";
 moment.locale("ar");
@@ -20,18 +25,26 @@ const theme = createTheme({
     fontFamily: ["IBM Plex Sans Arabic"],
   },
 });
-let cancelAxios = null;
+// let cancelAxios = null;
 function App() {
+  const dispatch = useDispatch();
+
+  const isLoading = useSelector((state) => {
+    return state.weather.isLoading;
+  });
+  const weatherData = useSelector((state) => {
+    return state.weather.weather;
+  });
   const { t, i18n } = useTranslation();
   const [local, setLocal] = useState("ar");
   const [timeAndDate, setTimeAndDate] = useState("");
-  const [weatherData, setWeatherData] = useState({
-    temp: null,
-    description: "",
-    temp_min: null,
-    temp_max: null,
-    icon: "",
-  });
+  // const [weatherData, setWeatherData] = useState({
+  //   temp: null,
+  //   description: "",
+  //   temp_min: null,
+  //   temp_max: null,
+  //   icon: "",
+  // });
 
   function changeLanguageHandle() {
     if (local === "en") {
@@ -46,44 +59,12 @@ function App() {
     setTimeAndDate(moment().format("MMMM Do YYYY, h:mm:ss a"));
   }
   useEffect(() => {
+    dispatch(changeResult());
     i18n.changeLanguage("ar");
   }, []);
   useEffect(() => {
     setTimeAndDate(moment().format("MMMM Do YYYY, h:mm:ss a"));
-    axios
-      .get(
-        "https://api.openweathermap.org/data/2.5/weather?lat=36.2021&lon=37.1343&appid=fa029df262735228a6a4600e4a48c45c",
-        {
-          cancelToken: new axios.CancelToken((c) => {
-            cancelAxios = c;
-          }),
-        }
-      )
-      .then(function (response) {
-        const responseTemp = Math.round(response.data.main.temp - 271.15);
-        const responseTempMin = Math.round(
-          response.data.main.temp_min - 271.15
-        );
-        const responseTempMax = Math.round(
-          response.data.main.temp_max - 271.15
-        );
-        const responseDescription = response.data.weather[0].description;
-        const responseIcon = response.data.weather[0].icon;
-
-        setWeatherData({
-          temp: responseTemp,
-          description: responseDescription,
-          temp_min: responseTempMin,
-          temp_max: responseTempMax,
-          icon: `https://openweathermap.org/img/wn/${responseIcon}@2x.png`,
-        });
-      })
-      .catch(function (error) {
-        // handle error
-      });
-    return () => {
-      cancelAxios();
-    };
+    dispatch(fetchWeatherApi());
   }, []);
 
   return (
@@ -153,31 +134,37 @@ function App() {
                         justifyContent: "center",
                       }}
                     >
+                      {isLoading ? (
+                        <CircularProgress style={{ color: "white" }} />
+                      ) : (
+                        ""
+                      )}
+
                       <Typography variant="h1" style={{ textAlign: "right" }}>
-                        {weatherData.temp}
+                        {weatherData.responseTemp}
                       </Typography>
 
-                      <img src={weatherData.icon} alt="weather icon" />
+                      <img src={weatherData.iconUrl} alt="weather icon" />
                     </div>
                     <div>
                       <Typography variant="h6">
-                        {t(weatherData.description)}
+                        {t(weatherData.responseDescription)}
                       </Typography>
                     </div>
                     {/* min & max */}
                     <div
                       style={{
                         display: "flex",
-                        justifyContent: "space-between",
+                        // justifyContent: "space-between",
                         alignItems: "center",
                       }}
                     >
                       <h5>
-                        {t("min")}:{weatherData.temp_min}
+                        {t("min")}:{weatherData.responseTempMin}
                       </h5>
-                      <h5 style={{ margin: "0px 10px" }}>|</h5>
+                      <h5 style={{ margin: "0px 10px " }}>|</h5>
                       <h5>
-                        {t("max")}:{weatherData.temp_max}
+                        {t("max")}:{weatherData.responseTempMax}
                       </h5>
                     </div>
                   </div>
